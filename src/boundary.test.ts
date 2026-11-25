@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 // The harness stands alone
 // ============================================================================
 
-const CORE_DIRECTORY = dirname(fileURLToPath(import.meta.url));
+const SOURCE_DIRECTORY = dirname(fileURLToPath(import.meta.url));
 const RELATIVE_IMPORT = /(?:from|import)\s*\(?\s*'(\.{1,2}\/[^']+)'/g;
 
 function sourceFiles(directory: string): string[] {
@@ -17,12 +17,12 @@ function sourceFiles(directory: string): string[] {
 }
 
 describe('harness boundary', () => {
-    it('imports nothing from the assistant, the daemon or the interfaces', () => {
-        const escapes = sourceFiles(CORE_DIRECTORY).flatMap((file) =>
+    it('imports nothing from outside its own source folder', () => {
+        const escapes = sourceFiles(SOURCE_DIRECTORY).flatMap((file) =>
             [...readFileSync(file, 'utf-8').matchAll(RELATIVE_IMPORT)]
                 .map((match) => resolve(dirname(file), match[1]))
-                .filter((target) => relative(CORE_DIRECTORY, target).startsWith('..'))
-                .map((target) => `${relative(CORE_DIRECTORY, file)} -> ${relative(CORE_DIRECTORY, target)}`),
+                .filter((target) => relative(SOURCE_DIRECTORY, target).startsWith('..'))
+                .map((target) => `${relative(SOURCE_DIRECTORY, file)} -> ${relative(SOURCE_DIRECTORY, target)}`),
         );
 
         expect(escapes).toEqual([]);

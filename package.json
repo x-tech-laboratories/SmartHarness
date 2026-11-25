@@ -1,0 +1,51 @@
+{
+    "name": "@x-tech-laboratories/smartharness",
+    "version": "0.1.0",
+    "description": "A task-tree harness that makes small, locally run language models more capable",
+    "license": "GPL-3.0-or-later",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/x-tech-laboratories/SmartHarness.git"
+    },
+    "type": "module",
+    "engines": {
+        "node": ">=24"
+    },
+    "exports": {
+        "./*": {
+            "types": "./dist/*.d.ts",
+            "default": "./dist/*.js"
+        }
+    },
+    "files": [
+        "dist",
+        "share",
+        "evals"
+    ],
+    "bin": {
+        "smartharness-eval": "dist/evaluation.js",
+        "smartharness-recall-benchmark": "dist/recallBenchmark.js"
+    },
+    "scripts": {
+        "build": "tsc -p tsconfig.build.json",
+        "typecheck": "tsc --noEmit -p tsconfig.json",
+        "test": "vitest run",
+        "coverage": "vitest run --coverage",
+        "lint": "oxlint",
+        "eval": "node dist/evaluation.js",
+        "recall-benchmark": "node dist/recallBenchmark.js"
+    },
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.32.2",
+        "node-llama-cpp": "^3.22.3",
+        "sqlite-vec": "^0.1.9",
+        "yaml": "^2.9.1"
+    },
+    "devDependencies": {
+        "@types/node": "^24.19.2",
+        "@vitest/coverage-v8": "^5.1.1",
+        "oxlint": "^1.94.0",
+        "typescript": "^7.0.2",
+        "vitest": "^5.1.0"
+    }
+}

@@ -1,6 +1,6 @@
 # Goal
 
-Codex is a harness for running small local LLMs as personal assistants on consumer computers. It aims to let them punch far above their weight in capability, reasoning, memory and the ability to research and learn.
+SmartHarness is a harness that lets small LLMs run on consumer computers punch far above their weight in capability, reasoning, memory and the ability to research and learn. It is an experiment in how far a 4B model can be pushed by the code around it.
 
 **Why local and small:** large models need datacenters, which means subscriptions and sending private data away. Small models run on the user's own hardware but have stale knowledge and weak reasoning. The harness is there to close that gap.
 
@@ -8,9 +8,11 @@ Codex is a harness for running small local LLMs as personal assistants on consum
 
 **Learn how to learn, not what to know:** the model's weights supply language and common sense; facts, how-to knowledge and skills live outside it, where they can be researched, checked, updated and corrected. A model taught to search, store and retrieve does not go out of date the day it ships.
 
-**What it should handle:** the user's email, calendar, tasks, bookmarks, notes, files and research: noticing what happens, preparing what is needed, and acting where the user allows.
+**Measured, not assumed:** every change is judged by the evals in `evals/`, run against the same small reference model, so a gain is the harness's and not a bigger model's.
 
-**The long-range aim:** an always-on assistant whose harness re-prompts one core model for each function a mind needs (perceiving events, storing and recalling memory, prioritizing, reviewing the results of its own actions, setting and pursuing goals, drives, initiative, reflection), learning continuously in idle time.
+**The long-range aim:** a harness that re-prompts one core model for each function a mind needs (perceiving events, storing and recalling memory, prioritizing, reviewing the results of its own actions, setting and pursuing goals, drives, initiative, reflection), learning continuously in idle time.
+
+**What it is not:** an application. It has no window, daemon, mail or persona; applications such as [CODEX](https://github.com/x-tech-laboratories/CODEX), a personal assistant, build on it and add those. Their real failures are a good source of new eval tasks.
 
 **Nothing is settled.** The design in docs 1–2 records what is built and why, not a commitment. Any part of the strategy or architecture, including the model, the decomposition method and the memory design, may change when evals show something better.
 
@@ -22,5 +24,3 @@ Codex is a harness for running small local LLMs as personal assistants on consum
 - `3-roadmap.md`: order, status, and how to measure each step.
 
 An approach moves from doc 2 to doc 1, with its rationale, once it is built; one an eval rejects moves to `docs/done/` with the result.
-
-They were distilled from the research notes and design conversations kept in `docs/done/`, and from the old `TODO.md` (see git history). Built/not-built statuses were checked against the code on 2026-11-06; the roadmap says what remains unchecked.

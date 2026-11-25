@@ -150,7 +150,7 @@ describe('isRepeating', () => {
     });
 
     it('leaves prose, short replies and repetitive data alone', () => {
-        const catalogue = readFileSync(new URL('../../evals/fake_catalogue.json', import.meta.url), 'utf-8');
+        const catalogue = readFileSync(new URL('../evals/fake_catalogue.json', import.meta.url), 'utf-8');
 
         expect(PROSE.length).toBeGreaterThanOrEqual(REPEAT_WINDOW_CHARS);
         expect(isRepeating(PROSE)).toBe(false);

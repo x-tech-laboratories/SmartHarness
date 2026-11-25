@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # The tests never load a model, so node-llama-cpp's prebuilt binaries are not needed.
+      NODE_LLAMA_CPP_SKIP_DOWNLOAD: 'true'
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run typecheck
+      - run: npm run build
+      # Installs from git use the committed dist/, so it must match the source.
+      - run: git diff --exit-code dist
+      - run: npm run coverage
+      - run: git diff --exit-code vitest.config.ts
+      - run: npm run lint

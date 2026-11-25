@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // Score recall against fixed questions whose relevant stored facts are known, by words alone and by meaning too.
 import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -84,7 +85,7 @@ export function loadQuestions(questionsPath: string): Question[] {
 
 // Build a fresh store from the seed, then recall each question and record what came back.
 export async function scoreRecall(seedPath: string, questions: Question[], embedder: TextEmbedder | null, label: string): Promise<Score> {
-    const directory = mkdtempSync(join(tmpdir(), 'codex-recall-'));
+    const directory = mkdtempSync(join(tmpdir(), 'smartharness-recall-'));
     try {
         const databasePath = join(directory, 'seed.sqlite3');
         await buildSeedStore(seedPath, databasePath, embedder);
@@ -157,7 +158,7 @@ export function formatFailures(score: Score): string {
 // Command line
 // ============================================================================
 
-const PROGRAM = 'codex recall-benchmark';
+const PROGRAM = 'smartharness-recall-benchmark';
 const USAGE =
     `usage: ${PROGRAM} [-h] [--seed SEED] [--questions QUESTIONS] [--settings SETTINGS]\n` +
     '                              [--embedding-model-path EMBEDDING_MODEL_PATH] [--words-only] [--show-failures]';

@@ -1,0 +1,7 @@
+node_modules
+coverage/
+models/
+result
+result-*
+*.tsbuildinfo
+.claude/

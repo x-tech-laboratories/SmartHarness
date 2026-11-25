@@ -1,0 +1,12 @@
+export declare const INSTRUCTIONS_FILE_NAMES: readonly ['CODEX.md', 'AGENTS.md'];
+export declare const MAX_INSTRUCTIONS_CHARS = 4000;
+export declare const INSTRUCTIONS_LABEL = "Standing instructions from the user";
+export declare function configDirectory(): string;
+export declare function globalInstructionsPath(): string;
+export declare function projectInstructionsPath(filesystemRoot: string): string | null;
+export declare function loadInstructions(filesystemRoot: string): string;
+export declare const SKILL_FOLDERS: Record<string, string>;
+export declare const MAX_SKILLS_CHARS = 3000;
+export declare const SKILLS_LABEL = "Skills and guides from the user";
+export declare function skillDirectories(filesystemRoot: string, store: string): string[];
+export declare function loadSkills(filesystemRoot: string, store: string): string;

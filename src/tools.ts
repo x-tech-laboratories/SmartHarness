@@ -606,7 +606,7 @@ export class Toolbox {
         for (let redirects = 0; ; redirects++) {
             response = await this.fetchPage(current, {
                 headers: {
-                    'User-Agent': 'CODEX/0.1 (+read-only research)',
+                    'User-Agent': 'SmartHarness/0.1 (+read-only research)',
                     Accept: 'text/html,application/xhtml+xml,text/plain;q=0.9,*/*;q=0.1',
                     'Accept-Encoding': 'identity',
                 },

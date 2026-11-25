@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // Compare the bare model with the task tree on a fixed task set, scoring each answer with checks that use no model.
 import { spawn } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
@@ -16,7 +17,7 @@ import { executeTaskTree, type AgentToolCall, type Delegation } from './taskTree
 import { CONNECTED_TOOL_PREFIX } from './toolStage.js';
 import { PYTHON_COMMAND } from './tools.js';
 
-export const EVALS_DIRECTORY = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'evals');
+export const EVALS_DIRECTORY = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'evals');
 export const DEFAULT_TASKS_PATH = join(EVALS_DIRECTORY, 'tasks.json');
 export const RECALL_TASKS_PATH = join(EVALS_DIRECTORY, 'recall_tasks.json');
 export const DEFAULT_SEED_PATH = join(EVALS_DIRECTORY, 'seed.json');
@@ -572,7 +573,7 @@ export async function runTask(
     );
     say?.('start');
     // Each run gets its own store, empty or a fresh copy of the seed, so no run sees what an earlier one stored.
-    const scratchDirectory = mkdtempSync(join(tmpdir(), 'codex-eval-'));
+    const scratchDirectory = mkdtempSync(join(tmpdir(), 'smartharness-eval-'));
     try {
         // The workspace is the filesystem root, so the knowledge store beside it stays out of the model's reach.
         const workspace = join(scratchDirectory, 'workspace');
@@ -1055,7 +1056,7 @@ export function formatComparison(comparison: { rows: PairedRow[]; totals: Paired
 // Command line
 // ============================================================================
 
-const PROGRAM = 'codex eval';
+const PROGRAM = 'smartharness-eval';
 const USAGE =
     `usage: ${PROGRAM} [-h] [--tasks TASKS] [--settings SETTINGS] [--runners RUNNERS] [--only ONLY] [--output OUTPUT]\n` +
     '                  [--seed-store SEED_STORE] [--seed [SEED]] [--repeat REPEAT] [--model-path MODEL_PATH] [--stream]\n' +
@@ -1281,7 +1282,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<numb
         console.error(`Error: ${errorText(error)}`);
         return 1;
     }
-    const seedDirectory = mkdtempSync(join(tmpdir(), 'codex-seed-'));
+    const seedDirectory = mkdtempSync(join(tmpdir(), 'smartharness-seed-'));
     try {
         if (args.seed) {
             args.seed_store = join(seedDirectory, 'seed.sqlite3');

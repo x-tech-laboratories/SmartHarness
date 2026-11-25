@@ -1,0 +1,18 @@
+import { BackgroundModel, type BackgroundOptions } from './background.js';
+import { KnowledgeStore } from './knowledge.js';
+import type { Settings } from './settings.js';
+export declare const TOPIC_VERDICTS: readonly ['same subject', 'first is broader', 'second is broader', 'different'];
+export declare const STATEMENT_VERDICTS: readonly ['same', 'contradict', 'different'];
+export declare const UNCLEAR = "unclear";
+export declare const TOP_LEVEL = "(top level)";
+export declare const NEW_PARENT = "(a broader subject not listed)";
+export declare const TOPIC_PAIR_PROMPT: string;
+export declare const FACT_PAIR_PROMPT: string;
+export declare const MEMORY_PAIR_PROMPT: string;
+export declare const PLACEMENT_PROMPT: string;
+export declare const NEW_PARENT_PROMPT: string;
+type Report = (message: string) => void;
+type Step = (store: KnowledgeStore, model: BackgroundModel, settings: Settings, report: Report) => Promise<boolean>;
+export declare const CONSOLIDATION_STEPS: readonly Step[];
+export declare function consolidateKnowledge(settings: Settings, options?: BackgroundOptions): Promise<boolean>;
+export {};

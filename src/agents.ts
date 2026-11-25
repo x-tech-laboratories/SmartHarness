@@ -46,7 +46,7 @@ export function agentDirectories(filesystemRoot: string): string[] {
 }
 
 // The starter agents shipped with the program, one per common personal-assistant domain.
-export const STARTER_AGENTS_DIRECTORY = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'share', 'agents');
+export const STARTER_AGENTS_DIRECTORY = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'share', 'agents');
 
 // Copy the starter agents into the global agents folder when there is no such folder yet, so the
 // hierarchy is on from the first run; a folder the user has made, even an empty one, is left alone.
