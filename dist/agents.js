@@ -3,7 +3,7 @@ import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSyn
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { YAMLError, YAMLParseError, parseDocument } from 'yaml';
-import { configDirectory } from './instructions.js';
+import { appIdentity, configDirectory } from './identity.js';
 import { expandUser } from './settings.js';
 // ============================================================================
 // Limits
@@ -35,7 +35,7 @@ const LINE_BREAK = /\r\n|[\n\r\v\f\x1c-\x1e\x85\u2028\u2029]/;
 // Return where agent files live, the global folder first so a folder's own file replaces it.
 export function agentDirectories(filesystemRoot) {
     const root = resolve(expandUser(filesystemRoot));
-    return [join(configDirectory(), 'agents'), join(root, '.codex', 'agents')];
+    return [join(configDirectory(), 'agents'), join(root, appIdentity().projectFolderName, 'agents')];
 }
 // The starter agents shipped with the program, one per common personal-assistant domain.
 export const STARTER_AGENTS_DIRECTORY = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'share', 'agents');

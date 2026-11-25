@@ -11,7 +11,6 @@ export declare const MAX_REDIRECTS = 10;
 export declare const SENSITIVE_NAMES: Set<string>;
 export declare const SEARCH_URL = "https://html.duckduckgo.com/html/";
 export declare const PYTHON_COMMAND = "python3";
-export declare const HARNESS_FOLDER = ".codex";
 export declare const READ_ONLY_TOOL_NAMES: Set<string>;
 export declare const ACTION_TOOL_NAMES: Set<string>;
 export declare const TOOL_DEFINITIONS: ToolDefinition[];
