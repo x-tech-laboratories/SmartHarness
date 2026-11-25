@@ -2,7 +2,8 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 
-import { INSTRUCTIONS_FILE_NAMES, configDirectory, projectInstructionsPath } from './instructions.js';
+import { appIdentity, configDirectory, instructionsFileNames } from './identity.js';
+import { projectInstructionsPath } from './instructions.js';
 import { MEMORY_STORES, MEMORY_STORE_LABELS, SCOPED_MEMORY_STORES, casefold, type MemoryStore as StoreName } from './knowledge.js';
 import { prompt } from './prompts.js';
 import { expandUser } from './settings.js';
@@ -179,7 +180,7 @@ export class Command {
 // Return where command files live, the folder's own last so they win over global ones of the same name.
 export function commandDirectories(filesystemRoot: string): string[] {
     const root = resolve(expandUser(filesystemRoot));
-    return [join(configDirectory(), 'commands'), join(root, '.codex', 'commands')];
+    return [join(configDirectory(), 'commands'), join(root, appIdentity().projectFolderName, 'commands')];
 }
 
 function commandFiles(directory: string): string[] {
@@ -253,17 +254,20 @@ function fillTemplate(template: string, argumentsText: string): string {
 // /init
 // ============================================================================
 
-export const INIT_PROMPT = prompt('init', { INSTRUCTIONS_FILE_NAME: INSTRUCTIONS_FILE_NAMES[0] });
+// The /init prompt, naming the instructions file the application reads.
+export function initInstructions(): string {
+    return prompt('init', { INSTRUCTIONS_FILE_NAME: instructionsFileNames()[0] });
+}
 
 function initPrompt(filesystemRoot: string, allowFileWrites: boolean, argumentsText: string): [string, string] {
     const existing = projectInstructionsPath(filesystemRoot);
-    let prompt = INIT_PROMPT;
+    let prompt = initInstructions();
     if (existing !== null) {
         prompt += ` ${basename(existing)} already exists: read it, keep what is still right, and improve the rest.`;
     }
     let mode: string;
     if (allowFileWrites) {
-        prompt += ` Write the result to ${INSTRUCTIONS_FILE_NAMES[0]} at the top of the folder and change no other file.`;
+        prompt += ` Write the result to ${instructionsFileNames()[0]} at the top of the folder and change no other file.`;
         mode = 'execute';
     } else {
         prompt += " Writing files is turned off, so reply with the file's full text only.";

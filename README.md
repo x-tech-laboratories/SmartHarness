@@ -19,8 +19,10 @@ a hosted model.
 SmartHarness is a library and an eval bench, not an application. The
 [CODEX](https://github.com/x-tech-laboratories/CODEX) assistant is built on it
 and supplies the daemon, window and one-shot CLI that some sections below
-mention. Configuration folders keep CODEX's names (`~/.config/codex/`, a
-project's `.codex/` folder and `CODEX.md`) so its users' files keep working.
+mention. The paths below use CODEX's names (`~/.config/codex/`, a project's
+`.codex/` folder and `CODEX.md`); an application picks its own with
+`setAppIdentity` from `identity.ts`, and the harness on its own uses
+`~/.config/smartharness/`, `.smartharness/` and `SMARTHARNESS.md`.
 See [docs/0-goal.md](docs/0-goal.md) for what the harness is for.
 
 ## Installation
@@ -41,7 +43,7 @@ The built `dist/` is committed, so installing runs no build step. The package
 declares no `bin`, since npm cannot mark a bin executable inside a read-only Nix
 store; an application runs `dist/evaluation.js` or `dist/recallBenchmark.js`
 with `node` instead. An
-application adds its own tables to the knowledge store with
+application names its folders with `setAppIdentity`, adds its own tables to the knowledge store with
 `applySchemaExtension`, its own settings with a `SettingsSchema`, and its own
 event handlers beside `DEFAULT_EVENT_HANDLERS`.
 
@@ -529,7 +531,7 @@ saved before these fields existed.
 `--prompts DIR` runs with prompt variants: each file in `DIR` replaces the
 shipped one of the same name in `share/prompts/` (for example a `decision.txt`
 of your own), the rest stay as shipped, and the `--output` file records the
-folder as `prompts_dir`. Setting `CODEX_PROMPTS_DIR` does the same. Nothing is
+folder as `prompts_dir`. Setting `SMARTHARNESS_PROMPTS_DIR` does the same. Nothing is
 rebuilt, so variants can be swapped between runs and compared with
 `--compare`.
 
@@ -803,6 +805,7 @@ See `docs/3-roadmap.md` for planned work.
 | `src/gpuLock.ts`                        | The GPU lock file shared with other programs                                                           |
 | `src/autoSize.ts`                       | Auto size: fitting context and token limits to the memory available                                    |
 | `src/settings.ts`                       | Defaults, validation, and the schema an application extends                                            |
+| `src/identity.ts`                       | The names an application gives the harness: its display name, config folder, project folder and instructions file |
 | `src/evaluation.ts`, `evals/`           | The eval harness and its fixed task sets                                                               |
 | `src/recallBenchmark.ts`                | Scoring recall against questions with known relevant facts                                             |
 

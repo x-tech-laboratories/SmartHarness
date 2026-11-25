@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 // The shipped prompts; they change only with the code, through the eval, and are not a settings file.
 export const PROMPTS_DIRECTORY = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'share', 'prompts');
 // A folder of prompt variants for an eval run: a file there replaces the shipped one of the same name.
-export const PROMPTS_OVERRIDE_VARIABLE = 'CODEX_PROMPTS_DIR';
+export const PROMPTS_OVERRIDE_VARIABLE = 'SMARTHARNESS_PROMPTS_DIR';
 export const PROMPT_EXTENSION = '.txt';
 // Values are written into a prompt where it says {{NAME}}, so a number the code also enforces is stated once.
 const PLACEHOLDER = /\{\{([A-Z_]+)\}\}/g;

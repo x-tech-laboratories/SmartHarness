@@ -6,7 +6,7 @@ import { BlockList, isIP } from 'node:net';
 import { isAbsolute, join, resolve, sep } from 'node:path';
 
 import type { ActionRecord } from './checks.js';
-import { configDirectory, INSTRUCTIONS_FILE_NAMES } from './instructions.js';
+import { appIdentity, configDirectory, instructionsFileNames } from './identity.js';
 import type { ToolDefinition } from './model.js';
 import { expandUser } from './settings.js';
 
@@ -27,8 +27,6 @@ export const SEARCH_URL = 'https://html.duckduckgo.com/html/';
 // The tests are run with this interpreter, found on the PATH.
 export const PYTHON_COMMAND = 'python3';
 
-// The project folder that holds the harness's own agents, skills and instructions.
-export const HARNESS_FOLDER = '.codex';
 export const READ_ONLY_TOOL_NAMES =new Set(['web_search', 'web_fetch', 'list_directory', 'read_file']);
 export const ACTION_TOOL_NAMES = new Set(['write_file', 'run_tests']);
 
@@ -397,11 +395,11 @@ function rejectSensitivePath(path: string): void {
     }
 }
 
-// Say whether a path holds the harness's own configuration: the `.codex` folder, a standing-instructions
+// Say whether a path holds the harness's own configuration: the project folder, a standing-instructions
 // file, or anything under the user's config folder. What is written there loads into every later call.
 export function isHarnessPath(path: string): boolean {
     const parts = path.split(sep).filter(Boolean);
-    if (parts.includes(HARNESS_FOLDER) || (INSTRUCTIONS_FILE_NAMES as readonly string[]).includes(parts[parts.length - 1] ?? '')) {
+    if (parts.includes(appIdentity().projectFolderName) || instructionsFileNames().includes(parts[parts.length - 1] ?? '')) {
         return true;
     }
     const config = resolvePath(configDirectory());
@@ -692,7 +690,7 @@ export class Toolbox {
         for (const name of readdirSync(directory).sort().slice(0, MAX_DIRECTORY_ENTRIES)) {
             const entry = join(directory, name);
             // The harness reads its own folder itself; listed, its agent and skill files pass for the user's notes.
-            if (isSensitivePath(entry) || name === HARNESS_FOLDER) {
+            if (isSensitivePath(entry) || name === appIdentity().projectFolderName) {
                 continue;
             }
             const link = lstatOrNull(entry);
