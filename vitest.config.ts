@@ -11,10 +11,10 @@ export default defineConfig({
             exclude: ['src/**/*.test.ts'],
             thresholds: {
                 autoUpdate: (newThreshold: number) => Math.floor(newThreshold),
-                lines: 86,
-                statements: 86,
+                lines: 87,
+                statements: 87,
                 functions: 91,
-                branches: 78,
+                branches: 79,
             },
         },
     },
