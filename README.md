@@ -37,7 +37,10 @@ import { executeTaskTree } from '@x-tech-laboratories/smartharness/taskTree';
 import { KnowledgeStore } from '@x-tech-laboratories/smartharness/knowledge';
 ```
 
-The built `dist/` is committed, so installing runs no build step. An
+The built `dist/` is committed, so installing runs no build step. The package
+declares no `bin`, since npm cannot mark a bin executable inside a read-only Nix
+store; an application runs `dist/evaluation.js` or `dist/recallBenchmark.js`
+with `node` instead. An
 application adds its own tables to the knowledge store with
 `applySchemaExtension`, its own settings with a `SettingsSchema`, and its own
 event handlers beside `DEFAULT_EVENT_HANDLERS`.
@@ -63,8 +66,8 @@ evals are measured on, is
 ## Usage
 
 ```bash
-npm run eval -- --runners bare,tree      # or: npx smartharness-eval
-npm run recall-benchmark                 # or: npx smartharness-recall-benchmark
+npm run eval -- --runners bare,tree
+npm run recall-benchmark
 ```
 
 ## How a request is handled
@@ -158,7 +161,7 @@ top task's write or combine step is the final answer.
   `[instruction removed]`. A 4B model followed an appended instruction inside
   the fence every time; with those sentences removed it passed every hostile
   task. `evals/hostile_seed.json` and `evals/hostile_tasks.json` test this:
-  `smartharness-eval --seed evals/hostile_seed.json --tasks evals/hostile_tasks.json`.
+  `npm run eval -- --seed evals/hostile_seed.json --tasks evals/hostile_tasks.json`.
 
 `mode` limits what a request may do: in `answer` and `draft` mode the `act`
 approach is never offered, so nothing is changed, while `auto` (the default)
@@ -490,7 +493,7 @@ Research never files a topic itself, so the tree is shaped only here.
 
 ## Evaluation
 
-`smartharness-eval` answers each task in `evals/tasks.json` with the bare model
+`npm run eval` answers each task in `evals/tasks.json` with the bare model
 (one call with a plain system prompt) and with the task tree, both on one
 loaded model. Each answer is scored by checks that do not use
 the model: `contains`, `contains_any`, `not_contains`, `regex`, `not_regex`,
@@ -592,22 +595,22 @@ a model, the facts and topics are embedded as the store is built, and every
 run recalls by meaning as well as by words.
 
 ```bash
-smartharness-eval --runners bare,tree --only stable-fact,python-bug
-smartharness-eval --tasks my-tasks.json --output report.json
-smartharness-eval --tasks evals/execute_tasks.json
-smartharness-eval --tasks evals/reasoning_tasks.json --runners bare,tree --repeat 3
-smartharness-eval --runners tree --repeat 3 --output report.json
-smartharness-eval --tasks evals/agents_tasks.json --runners tree,agents --stream
-smartharness-eval --tasks evals/agents_tasks.json --runners tree,agents --repeat 3 --compare old.json
-smartharness-eval --compare old.json --against new.json
-smartharness-eval --tasks evals/scaled_tasks.json --runners tree,agents --repeat 3
-smartharness-eval --runners tree --seed-store ~/.local/share/smartharness/knowledge.sqlite3
-smartharness-eval --seed --runners tree
+npm run eval -- --runners bare,tree --only stable-fact,python-bug
+npm run eval -- --tasks my-tasks.json --output report.json
+npm run eval -- --tasks evals/execute_tasks.json
+npm run eval -- --tasks evals/reasoning_tasks.json --runners bare,tree --repeat 3
+npm run eval -- --runners tree --repeat 3 --output report.json
+npm run eval -- --tasks evals/agents_tasks.json --runners tree,agents --stream
+npm run eval -- --tasks evals/agents_tasks.json --runners tree,agents --repeat 3 --compare old.json
+npm run eval -- --compare old.json --against new.json
+npm run eval -- --tasks evals/scaled_tasks.json --runners tree,agents --repeat 3
+npm run eval -- --runners tree --seed-store ~/.local/share/smartharness/knowledge.sqlite3
+npm run eval -- --seed --runners tree
 ```
 
 ## Recall benchmark
 
-`smartharness-recall-benchmark` scores recall itself, with no chat model. It
+`npm run recall-benchmark` scores recall itself, with no chat model. It
 builds a store from the made-up facts in `evals/recall_benchmark_seed.json`,
 asks each question in `evals/recall_benchmark.json`, and compares the five
 facts recalled with the ones each question expects. Questions come in four
