@@ -22,10 +22,6 @@
         "share",
         "evals"
     ],
-    "bin": {
-        "smartharness-eval": "dist/evaluation.js",
-        "smartharness-recall-benchmark": "dist/recallBenchmark.js"
-    },
     "scripts": {
         "build": "tsc -p tsconfig.build.json",
         "typecheck": "tsc --noEmit -p tsconfig.json",
