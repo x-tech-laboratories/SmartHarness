@@ -1,5 +1,6 @@
 // Probes the machine for the environment memory stores: where things are and what software is installed or running.
 // Every probe is a plain reading of the system, never a model call, so what it records is always what the machine shows.
+import { appIdentity } from './identity.js';
 import { execFile } from 'node:child_process';
 import { accessSync, constants, readFileSync, statSync } from 'node:fs';
 import { homedir, machine, release, type } from 'node:os';
@@ -153,7 +154,7 @@ function mountedFilesystems(): string[] {
 
 export function probeLocations(filesystemRoot: string): string[] {
     const root = resolvePath(expandUser(filesystemRoot));
-    const statements = [`The user's home folder is ${homedir()}.`, `CODEX works in the folder ${root}.`];
+    const statements = [`The user's home folder is ${homedir()}.`, `${appIdentity().displayName} works in the folder ${root}.`];
     statements.push(...userDirectories());
     statements.push(...mountedFilesystems());
     return statements;
@@ -214,7 +215,7 @@ export async function probeSoftware(options: { findCommand?: FindCommand } = {})
     const find = options.findCommand ?? findCommand;
     const statements = [
         `The operating system is ${operatingSystem()}, kernel ${release()}, on ${machine()}.`,
-        `Node.js ${process.versions.node} runs CODEX from ${process.execPath}.`,
+        `Node.js ${process.versions.node} runs ${appIdentity().displayName} from ${process.execPath}.`,
     ];
     const shell = process.env.SHELL;
     if (shell) {

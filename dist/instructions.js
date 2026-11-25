@@ -1,27 +1,23 @@
 // Read the standing instructions the user writes for every request, and the skill guides for the tasks that use them.
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { appIdentity, configDirectory, instructionsFileNames } from './identity.js';
 import { expandUser } from './settings.js';
+export { configDirectory };
 // ============================================================================
 // Where the user's files live
 // ============================================================================
-// A folder's instructions file; the first of these names found in the folder is read.
-export const INSTRUCTIONS_FILE_NAMES = ['CODEX.md', 'AGENTS.md'];
 // Instructions go into every model call, so they are kept short enough to leave room for the work itself.
 export const MAX_INSTRUCTIONS_CHARS = 4000;
 // Section headings the code writes and matches, so they stay in code rather than share/prompts/.
 export const INSTRUCTIONS_LABEL = 'Standing instructions from the user';
-export function configDirectory() {
-    return join(process.env.XDG_CONFIG_HOME || join(homedir(), '.config'), 'codex');
-}
 export function globalInstructionsPath() {
-    return join(configDirectory(), INSTRUCTIONS_FILE_NAMES[0]);
+    return join(configDirectory(), instructionsFileNames()[0]);
 }
 // Return the folder's instructions file, or null when it has none.
 export function projectInstructionsPath(filesystemRoot) {
     const root = resolve(expandUser(filesystemRoot));
-    for (const name of INSTRUCTIONS_FILE_NAMES) {
+    for (const name of instructionsFileNames()) {
         const path = join(root, name);
         try {
             if (statSync(path).isFile()) {
@@ -70,7 +66,7 @@ export const SKILLS_LABEL = 'Skills and guides from the user';
 // Return where a skill store's guides live, the global folder first and the folder's own last.
 export function skillDirectories(filesystemRoot, store) {
     const root = resolve(expandUser(filesystemRoot));
-    return [join(configDirectory(), 'skills', SKILL_FOLDERS[store]), join(root, '.codex', 'skills', SKILL_FOLDERS[store])];
+    return [join(configDirectory(), 'skills', SKILL_FOLDERS[store]), join(root, appIdentity().projectFolderName, 'skills', SKILL_FOLDERS[store])];
 }
 function guideFiles(directory) {
     try {

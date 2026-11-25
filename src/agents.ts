@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 
 import { YAMLError, YAMLParseError, parseDocument, type CollectionTag, type ScalarTag } from 'yaml';
 
-import { configDirectory } from './instructions.js';
+import { appIdentity, configDirectory } from './identity.js';
 import { expandUser } from './settings.js';
 
 // ============================================================================
@@ -42,7 +42,7 @@ const LINE_BREAK = /\r\n|[\n\r\v\f\x1c-\x1e\x85\u2028\u2029]/;
 // Return where agent files live, the global folder first so a folder's own file replaces it.
 export function agentDirectories(filesystemRoot: string): string[] {
     const root = resolve(expandUser(filesystemRoot));
-    return [join(configDirectory(), 'agents'), join(root, '.codex', 'agents')];
+    return [join(configDirectory(), 'agents'), join(root, appIdentity().projectFolderName, 'agents')];
 }
 
 // The starter agents shipped with the program, one per common personal-assistant domain.

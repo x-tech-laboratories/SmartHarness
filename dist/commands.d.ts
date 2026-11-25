@@ -35,5 +35,5 @@ export declare class Command {
 }
 export declare function commandDirectories(filesystemRoot: string): string[];
 export declare function loadCommands(filesystemRoot: string): Map<string, Command>;
-export declare const INIT_PROMPT: string;
+export declare function initInstructions(): string;
 export declare function expandCommand(userPrompt: string, filesystemRoot: string, allowFileWrites: boolean): [string | null, string];

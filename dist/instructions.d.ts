@@ -1,7 +1,7 @@
-export declare const INSTRUCTIONS_FILE_NAMES: readonly ['CODEX.md', 'AGENTS.md'];
+import { configDirectory } from './identity.js';
+export { configDirectory };
 export declare const MAX_INSTRUCTIONS_CHARS = 4000;
 export declare const INSTRUCTIONS_LABEL = "Standing instructions from the user";
-export declare function configDirectory(): string;
 export declare function globalInstructionsPath(): string;
 export declare function projectInstructionsPath(filesystemRoot: string): string | null;
 export declare function loadInstructions(filesystemRoot: string): string;

@@ -1,4 +1,5 @@
 // Tools from MCP servers the user allows, offered to the model beside the built-in ones.
+import { appIdentity } from './identity.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
@@ -6,7 +7,7 @@ import { MAX_TOOL_OUTPUT_CHARS, ValueError } from './tools.js';
 // ============================================================================
 // Settings
 // ============================================================================
-// Only these variables of CODEX's own environment reach a server it starts.
+// Only these variables of the application's own environment reach a server it starts.
 export const INHERITED_VARIABLES = ['PATH', 'HOME', 'TMPDIR', 'TEMP', 'TMP', 'LANG', 'LC_ALL', 'LC_CTYPE', 'SSL_CERT_FILE', 'SSL_CERT_DIR'];
 // Fill each ${NAME} in a setting from the environment, refusing a name that is not set.
 export function resolvePlaceholders(value, serverName) {
@@ -107,7 +108,7 @@ export class MCPToolbox {
     }
     async connectServer(server) {
         const transport = server.transport === 'http' ? httpTransport(server) : stdioTransport(server);
-        const client = new Client({ name: 'codex', version: '0.1.0' });
+        const client = new Client({ name: appIdentity().configFolderName, version: '0.1.0' });
         await client.connect(transport);
         this.clients.push(client);
         const response = await client.listTools();

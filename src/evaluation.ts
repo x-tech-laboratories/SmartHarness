@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 // Compare the bare model with the task tree on a fixed task set, scoring each answer with checks that use no model.
+import { appIdentity } from './identity.js';
 import { spawn } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -711,7 +712,7 @@ async function answerWith(
         return answer;
     }
     if (runner === 'agents') {
-        copyAgentFiles(join(workspace, '.codex', 'agents'));
+        copyAgentFiles(join(workspace, appIdentity().projectFolderName, 'agents'));
     }
     return executeTaskTree(task.prompt, {
         contextSize: settings.context_size,
