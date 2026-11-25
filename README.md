@@ -47,7 +47,9 @@ application names its folders with `setAppIdentity`, adds its own tables to the 
 `applySchemaExtension`, its own settings with a `SettingsSchema`, and its own
 event handlers beside `DEFAULT_EVENT_HANDLERS`.
 
-To work on it, enter the dev shell, which provides Node 24:
+To work on it, enter the dev shell, which provides Node 24 and the CUDA runtime
+that node-llama-cpp needs to use an NVIDIA GPU (without it, a model runs on the
+CPU with no error):
 
 ```bash
 nix develop

@@ -8,7 +8,8 @@
   outputs = { self, nixpkgs }:
     let
       system = "x86_64-linux";
-      pkgs = import nixpkgs { inherit system; };
+      # The CUDA runtime that node-llama-cpp loads is unfree.
+      pkgs = import nixpkgs { inherit system; config.allowUnfree = true; };
     in
     {
       devShells.${system}.default = import ./shell.nix { inherit pkgs; };
