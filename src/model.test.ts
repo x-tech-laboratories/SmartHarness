@@ -107,6 +107,24 @@ describe('chatHistory', () => {
             { type: 'model', response: [{ type: 'functionCall', name: 'read_file', params: { path: 'x' }, result: 'contents' }] },
         ]);
     });
+
+    it('keeps a reply with its text, reads broken arguments as none, and gives an unmatched result to the user', () => {
+        const history = chatHistory([
+            { role: 'system', content: null },
+            { role: 'user', content: null },
+            { role: 'assistant', content: 'Looking.', tool_calls: [{ id: 'b', type: 'function', function: { name: 'search', arguments: '{not json' } }] },
+            { role: 'tool', tool_call_id: 'missing', content: 'stray' },
+            { role: 'tool', content: null },
+        ]);
+
+        expect(history).toEqual([
+            { type: 'system', text: '' },
+            { type: 'user', text: '' },
+            { type: 'model', response: ['Looking.', { type: 'functionCall', name: 'search', params: {}, result: '' }] },
+            { type: 'user', text: 'stray' },
+            { type: 'user', text: '' },
+        ]);
+    });
 });
 
 describe('grammarSchema', () => {
@@ -121,6 +139,24 @@ describe('grammarSchema', () => {
             properties: { count: { type: 'integer' }, names: { type: 'array', items: { type: 'string' }, maxItems: 3 } },
             required: ['count', 'names'],
         });
+    });
+
+    it('walks lists and alternatives, keeps a given required list, and leaves plain values alone', () => {
+        const schema = {
+            anyOf: [{ type: 'string', pattern: 'x' }, { type: 'null' }],
+            prefixItems: [{ type: 'number', minimum: 1 }],
+            oneOf: [{ type: 'object', properties: { a: { type: 'string' } }, required: [] }],
+            additionalProperties: { type: 'boolean', default: true },
+        };
+
+        expect(grammarSchema(schema)).toEqual({
+            anyOf: [{ type: 'string' }, { type: 'null' }],
+            prefixItems: [{ type: 'number' }],
+            oneOf: [{ type: 'object', properties: { a: { type: 'string' } }, required: [] }],
+            additionalProperties: { type: 'boolean' },
+        });
+        expect(grammarSchema('text')).toBe('text');
+        expect(grammarSchema(null)).toBe(null);
     });
 });
 
