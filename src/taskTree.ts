@@ -9,7 +9,7 @@ import { getEmbedder } from './embeddings.js';
 import { CONNECTED_EVIDENCE_RULE, MAX_SEARCH_QUERIES, MAX_SEARCH_QUERY_CHARS, MEMORY_LABEL, NO_EVIDENCE_RULE, RESEARCHED_EVIDENCE_RULE, VERIFIED_EVIDENCE_RULE, buildToolbox, formatRecall, isSqliteError, pythonJson, queueStaleTopics, requiresWebResearch, sectionSummarizer, type SectionSummarizer } from './evidence.js';
 import { INSTRUCTIONS_LABEL, SKILLS_LABEL, loadInstructions, loadSkills } from './instructions.js';
 import { KnowledgeStore, MAX_RECALLED_RELATIONSHIPS, casefold, type EventTrust as Trust, type Recalled, type Row, type RecalledFact, type RecalledRelationship } from './knowledge.js';
-import { loadModel, runStage, type ChatModel, type ModelCache } from './model.js';
+import { loadModel, localModelSource, runStage, type ChatModel, type ModelCache, type ModelSource } from './model.js';
 import { prompt } from './prompts.js';
 import { CONTEXT_SIZE, DEFAULT_MODEL_PATH, MAX_TASK_DEPTH, MAX_TASK_NODES, MAX_TOKENS, MODE_CHOICES, TEMPERATURE, expandUser, type McpServerSettings } from './settings.js';
 import { approachesFor, agentChoices, decide } from './steps/decide.js';
@@ -1470,6 +1470,8 @@ export type ExecuteTaskTreeOptions = TaskTreeCallbacks & {
     embeddingModelPath?: string;
     llm?: ChatModel | null;
     modelCache?: ModelCache | null;
+    // The model to run on; without one the run loads the local model at modelPath.
+    modelSource?: ModelSource | null;
     maxPendingResearchJobs?: number;
     maxTaskDepth?: number;
     maxTaskNodes?: number;
@@ -1497,7 +1499,7 @@ export function savedRunOptions(saved: Record<string, unknown>): ExecuteTaskTree
 // Answer a request by working it as a tree of tasks, checkpointing it with a knowledge store; resumeRunId carries on a saved run.
 export async function executeTaskTree(userPrompt: string, options: ExecuteTaskTreeOptions = {}): Promise<string> {
     const modelPath = options.modelPath ?? DEFAULT_MODEL_PATH;
-    const contextSize = options.contextSize ?? CONTEXT_SIZE;
+    const contextSize = options.contextSize ?? options.modelSource?.contextSize ?? CONTEXT_SIZE;
     const gpuLayers = options.gpuLayers ?? -1;
     const maxTokens = options.maxTokens ?? MAX_TOKENS;
     const temperature = options.temperature ?? TEMPERATURE;
@@ -1574,7 +1576,8 @@ export async function executeTaskTree(userPrompt: string, options: ExecuteTaskTr
         maxPendingResearchJobs,
         foundUrls,
     );
-    const llm = await loadModel(options.llm, modelPath, contextSize, gpuLayers, options.modelCache ?? null, options.progressCallback ?? undefined);
+    const modelSource = options.modelSource ?? localModelSource(modelPath, contextSize, gpuLayers);
+    const llm = await loadModel(options.llm, modelSource, options.modelCache ?? null, options.progressCallback ?? undefined);
     const run = new TaskTreeRun(prompt, llm, toolbox, knowledgeStore, foundUrls, {
         contextSize,
         maxTokens,

@@ -211,6 +211,19 @@ function offered(model: ScriptedModel, task: string): string[] {
 // Direct tasks
 // ============================================================================
 
+describe('the model a run uses', () => {
+    it('loads the model source it is given and sizes its context by it', async () => {
+        const model = new ScriptedModel({ 'decide 1': decision('answer'), 'write 1': 'Hello.' });
+        const modelSource = { key: 'hosted', label: 'hosted', contextSize: 100_000, load: vi.fn(async () => model) };
+        mocks.searchWithMemory.mockResolvedValue(NOTHING_FOUND);
+
+        const result = await executeTaskTree('Say hello', { ...runOptions(model), llm: null, modelSource });
+
+        expect(result).toBe('Hello.');
+        expect(modelSource.load).toHaveBeenCalledOnce();
+    });
+});
+
 describe('direct tasks', () => {
     it('decides, writes and checks a simple request', async () => {
         const searches: string[] = [];

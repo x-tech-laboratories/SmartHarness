@@ -50,6 +50,16 @@ describe('a request left for later', () => {
         expect(store.actions('proposed')[0]).toMatchObject({ kind: 'result', title: 'Summarise what I know about WAL', body: 'WAL is a journal mode.' });
     });
 
+    it('runs on the model source background work was given, sized by it', async () => {
+        userRequest();
+        const runTree = vi.fn<TreeRunner>().mockResolvedValue('Done.');
+        const modelSource = { key: 'hosted', label: 'hosted', contextSize: 200_000, load: async () => ({}) as ChatModel };
+
+        await handleNextEvent(settings, { modelSource }, undefined, runTree);
+
+        expect(runTree.mock.calls[0][1]).toMatchObject({ modelSource, contextSize: 200_000 });
+    });
+
     it('ignores a request without a prompt', async () => {
         store.enqueueEvent({ source: 'user', type: 'user.request', trust: 'user', payload: {} });
         const runTree = vi.fn<TreeRunner>();

@@ -4,9 +4,9 @@ import { fitSectionsToTokens, inputTokenBudget, renderSections, tokenCounter } f
 import { getEmbedder } from './embeddings.js';
 import { queueResearchTopic, summarizeWebPage } from './evidence.js';
 import { KnowledgeStore, MEMORY_STORES, WORD, casefold, searchTerms, sharesHalfTheTerms, words } from './knowledge.js';
-import { LocalModel, runStage } from './model.js';
+import { backgroundModelSource, runStage } from './model.js';
 import { prompt } from './prompts.js';
-import { MAX_TOKENS, TEMPERATURE, backgroundModelKey } from './settings.js';
+import { MAX_TOKENS, TEMPERATURE } from './settings.js';
 import { Toolbox } from './tools.js';
 // ============================================================================
 // Limits and schemas
@@ -114,11 +114,10 @@ export class BackgroundModel {
     modelLock;
     modelCache;
     maxTokens;
-    modelPath;
+    modelSource;
     contextSize;
-    gpuLayers;
     llm;
-    constructor(settings, onToken, shouldPause, llm, modelLock, modelCache) {
+    constructor(settings, onToken, shouldPause, llm, modelLock, modelCache, modelSource = null) {
         this.settings = settings;
         this.onToken = onToken;
         this.shouldPause = shouldPause;
@@ -126,10 +125,11 @@ export class BackgroundModel {
         this.modelCache = modelCache;
         this.llm = llm;
         this.maxTokens = settings.background_max_tokens ?? MAX_TOKENS;
-        [this.modelPath, this.contextSize, this.gpuLayers] = backgroundModelKey(settings);
+        this.modelSource = modelSource ?? backgroundModelSource(settings);
+        this.contextSize = this.modelSource.contextSize;
     }
     static fromOptions(settings, options) {
-        return new BackgroundModel(settings, options.onToken ?? null, options.shouldPause ?? null, options.llm ?? null, options.modelLock ?? null, options.modelCache ?? null);
+        return new BackgroundModel(settings, options.onToken ?? null, options.shouldPause ?? null, options.llm ?? null, options.modelLock ?? null, options.modelCache ?? null, options.modelSource ?? null);
     }
     checkPause() {
         if (this.shouldPause !== null && this.shouldPause()) {
@@ -139,8 +139,8 @@ export class BackgroundModel {
     async load() {
         if (this.llm === null) {
             this.llm = this.modelCache !== null
-                ? await this.modelCache.get(this.modelPath, this.contextSize, this.gpuLayers)
-                : await LocalModel.load(this.modelPath, this.contextSize, this.gpuLayers);
+                ? await this.modelCache.get(this.modelSource)
+                : await this.modelSource.load();
         }
         return this.llm;
     }

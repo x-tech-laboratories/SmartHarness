@@ -14,7 +14,10 @@ what the harness has researched, and background steps use idle time to research
 and refresh it, so the harness grows more useful the longer it runs.
 
 Models run through `node-llama-cpp` from a local GGUF file. Nothing is sent to
-a hosted model.
+a hosted model unless the application using the harness supplies one: any
+`ChatModel` from `model.ts` can be passed in as a `ModelSource`
+(`modelSource` in `executeTaskTree` and the background options), and the
+harness then loads and caches it like a local model.
 
 SmartHarness is a library and an eval bench, not an application. The
 [CODEX](https://github.com/x-tech-laboratories/CODEX) assistant is built on it
