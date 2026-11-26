@@ -1,6 +1,6 @@
 import { deflateRawSync } from 'node:zlib';
 import { GPU_LOCK } from './gpuLock.js';
-import { MAX_TOKENS, TEMPERATURE } from './settings.js';
+import { MAX_TOKENS, TEMPERATURE, backgroundModelKey } from './settings.js';
 // How a tool call written as text begins, in Qwen's XML form and the form of Spark models.
 export const TEXT_TOOL_CALL_OPENINGS = ['<tool_call>', '<function='];
 export const TOKEN_LIMIT_MESSAGE = 'A model call reached the token limit; raise max_tokens (background_max_tokens for background research) or context_size, or use Auto size in Options.';
@@ -305,20 +305,35 @@ export function grammarSchema(schema) {
     }
     return result;
 }
-// Keep one loaded model and reload it only when its load settings change.
+export function localModelSource(modelPath, contextSize, gpuLayers) {
+    return {
+        key: JSON.stringify(['local', modelPath, contextSize, gpuLayers]),
+        label: modelPath,
+        contextSize,
+        load: (onWait) => LocalModel.load(modelPath, contextSize, gpuLayers, onWait),
+    };
+}
+// The model background work loads when the caller gives it none.
+export function backgroundModelSource(settings) {
+    return localModelSource(...backgroundModelKey(settings));
+}
+// ============================================================================
+// Model cache
+// ============================================================================
+// Keep one loaded model and reload it only when its source changes.
 export class ModelCache {
     key = null;
     model = null;
-    has(modelPath, contextSize, gpuLayers) {
-        return this.model !== null && this.key !== null && this.key[0] === modelPath && this.key[1] === contextSize && this.key[2] === gpuLayers;
+    has(source) {
+        return this.model !== null && this.key === source.key;
     }
-    async get(modelPath, contextSize, gpuLayers, onWait) {
-        if (!this.has(modelPath, contextSize, gpuLayers)) {
+    async get(source, onWait) {
+        if (!this.has(source)) {
             // Drop the old model first so two never sit in memory together.
             await this.unload();
-            const loading = LocalModel.load(modelPath, contextSize, gpuLayers, onWait);
+            const loading = source.load(onWait);
             this.model = loading;
-            this.key = [modelPath, contextSize, gpuLayers];
+            this.key = source.key;
             loading.catch(() => {
                 if (this.model === loading) {
                     this.model = null;
@@ -337,7 +352,7 @@ export class ModelCache {
             return false;
         }
         try {
-            await (await loading).close();
+            await (await loading).close?.();
         }
         catch {
             // A model that failed to load holds nothing to free.
@@ -395,16 +410,16 @@ export async function runStage(llm, systemPrompt, userInput, options = {}) {
     return content.trim();
 }
 // Return the given model, or load one, reporting the load only when it takes time.
-export async function loadModel(llm, modelPath, contextSize, gpuLayers, modelCache, progressCallback) {
+export async function loadModel(llm, source, modelCache, progressCallback) {
     if (llm) {
         return llm;
     }
     const report = progressCallback ?? ((message) => console.log(message));
-    if (modelCache === null || !modelCache.has(modelPath, contextSize, gpuLayers)) {
-        report(progressCallback ? 'Loading model' : `Loading model from ${modelPath}...`);
+    if (modelCache === null || !modelCache.has(source)) {
+        report(progressCallback ? 'Loading model' : `Loading model from ${source.label}...`);
     }
     if (modelCache) {
-        return modelCache.get(modelPath, contextSize, gpuLayers, report);
+        return modelCache.get(source, report);
     }
-    return LocalModel.load(modelPath, contextSize, gpuLayers, report);
+    return source.load(report);
 }

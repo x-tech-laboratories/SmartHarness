@@ -24,7 +24,7 @@ export async function runEventTree(prompt, trust, { settings, options, runTree }
     try {
         return await runTree(prompt, {
             modelPath,
-            contextSize,
+            contextSize: options.modelSource?.contextSize ?? contextSize,
             gpuLayers,
             maxTokens: settings.max_tokens,
             temperature: settings.temperature,
@@ -45,6 +45,7 @@ export async function runEventTree(prompt, trust, { settings, options, runTree }
             trust,
             llm: options.llm ?? null,
             modelCache: options.modelCache ?? null,
+            modelSource: options.modelSource ?? null,
             progressCallback: options.onProgress ?? undefined,
             shouldStop: options.shouldPause ?? undefined,
         });

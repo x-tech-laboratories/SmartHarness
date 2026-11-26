@@ -1,6 +1,6 @@
 import { type Section } from './contextBudget.js';
 import { KnowledgeStore } from './knowledge.js';
-import { type ChatModel, type ModelCache } from './model.js';
+import { type ChatModel, type ModelCache, type ModelSource } from './model.js';
 import { type Settings } from './settings.js';
 export declare const BACKGROUND_PAGES_PER_TOPIC = 2;
 export declare const EPISODES_PER_PASS = 5;
@@ -122,6 +122,7 @@ export type BackgroundOptions = {
     llm?: ChatModel | null;
     modelLock?: ModelLock | null;
     modelCache?: ModelCache | null;
+    modelSource?: ModelSource | null;
 };
 export declare function rethrowPause(error: unknown): void;
 export declare class BackgroundModel {
@@ -131,11 +132,10 @@ export declare class BackgroundModel {
     readonly modelLock: ModelLock | null;
     readonly modelCache: ModelCache | null;
     readonly maxTokens: number;
-    readonly modelPath: string;
+    readonly modelSource: ModelSource;
     readonly contextSize: number;
-    readonly gpuLayers: number;
     private llm;
-    constructor(settings: Settings, onToken: ((token: string) => void) | null, shouldPause: (() => boolean) | null, llm: ChatModel | null, modelLock: ModelLock | null, modelCache: ModelCache | null);
+    constructor(settings: Settings, onToken: ((token: string) => void) | null, shouldPause: (() => boolean) | null, llm: ChatModel | null, modelLock: ModelLock | null, modelCache: ModelCache | null, modelSource?: ModelSource | null);
     static fromOptions(settings: Settings, options: BackgroundOptions): BackgroundModel;
     checkPause(): void;
     private load;

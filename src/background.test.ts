@@ -38,6 +38,7 @@ vi.mock('./embeddings.js', async (importOriginal) => ({
 }));
 
 import {
+    BackgroundModel,
     completeSentences,
     groundedFacts,
     groundedSummary,
@@ -49,7 +50,7 @@ import {
 } from './background.js';
 import { normalize, type TextEmbedder } from './embeddings.js';
 import { KnowledgeStore } from './knowledge.js';
-import type { ChatModel, ModelCache } from './model.js';
+import { localModelSource, type ChatModel, type ModelCache, type ModelSource } from './model.js';
 import { DEFAULT_SETTINGS, type Settings } from './settings.js';
 
 // ============================================================================
@@ -63,6 +64,11 @@ let directory: string;
 let settings: Settings;
 let store: KnowledgeStore;
 const llm = {} as ChatModel;
+
+// The source a fake cache was last asked for.
+function sourceOf(cache: { get: { mock: { lastCall?: unknown[] } } }): ModelSource {
+    return cache.get.mock.lastCall![0] as ModelSource;
+}
 
 beforeEach(() => {
     directory = mkdtempSync(join(tmpdir(), 'codex-background-'));
@@ -143,13 +149,26 @@ describe('background research', () => {
 
         expect(fakes.loadModel).not.toHaveBeenCalled();
         expect(fakes.runStage.mock.lastCall![0]).toBe('shared model');
-        expect(cache.get.mock.lastCall).toEqual([settings.model_path, settings.context_size, settings.gpu_layers]);
+        expect(sourceOf(cache).key).toBe(localModelSource(settings.model_path, settings.context_size, settings.gpu_layers).key);
 
         settings = { ...settings, background_model_path: 'big.gguf', background_context_size: 8192, background_gpu_layers: 0 };
         store.enqueueTopic('SQLite WAL');
         await researchOneTopic(settings, { modelCache: cache as unknown as ModelCache });
 
-        expect(cache.get.mock.lastCall).toEqual(['big.gguf', 8192, 0]);
+        expect(sourceOf(cache).key).toBe(localModelSource('big.gguf', 8192, 0).key);
+    });
+
+    it('runs on the model source it is given, sized by that source', async () => {
+        store.enqueueTopic('SQLite FTS5');
+        searchReturns([{ title: 'SQLite FTS5', url: 'https://example.test/fts', snippet: 'Full text search.' }]);
+        const hosted: ModelSource = { key: 'hosted', label: 'hosted', contextSize: 100_000, load: vi.fn(async () => 'hosted model' as unknown as ChatModel) };
+        fakes.runStage.mockResolvedValue('Summary');
+
+        await researchOneTopic(settings, { modelSource: hosted });
+
+        expect(hosted.load).toHaveBeenCalledOnce();
+        expect(fakes.runStage.mock.lastCall![0]).toBe('hosted model');
+        expect(BackgroundModel.fromOptions(settings, { modelSource: hosted }).contextSize).toBe(100_000);
     });
 
     it('does not load a model when the queue is empty', async () => {

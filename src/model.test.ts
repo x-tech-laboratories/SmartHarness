@@ -1,16 +1,31 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
+    backgroundModelSource,
     chatHistory,
     grammarSchema,
     isRepeating,
+    loadModel,
+    localModelSource,
     ModelCache,
     REPEAT_WINDOW_CHARS,
     runStage,
     type ChatCompletion,
     type ChatCompletionRequest,
+    type ModelSource,
 } from './model.js';
+import { DEFAULT_SETTINGS } from './settings.js';
+
+const STOP: ChatCompletion = { content: 'Done', tool_calls: [], finish_reason: 'stop' };
+
+// A source whose model records being closed.
+function fakeSource(name: string) {
+    const close = vi.fn(async () => undefined);
+    const model = { ...replying(STOP), close };
+    const source: ModelSource = { key: name, label: name, contextSize: 2048, load: vi.fn(async () => model) };
+    return { source, model, close };
+}
 
 function replying(completion: ChatCompletion, streamed: string[] = []) {
     const requests: ChatCompletionRequest[] = [];
@@ -92,6 +107,24 @@ describe('chatHistory', () => {
             { type: 'model', response: [{ type: 'functionCall', name: 'read_file', params: { path: 'x' }, result: 'contents' }] },
         ]);
     });
+
+    it('keeps a reply with its text, reads broken arguments as none, and gives an unmatched result to the user', () => {
+        const history = chatHistory([
+            { role: 'system', content: null },
+            { role: 'user', content: null },
+            { role: 'assistant', content: 'Looking.', tool_calls: [{ id: 'b', type: 'function', function: { name: 'search', arguments: '{not json' } }] },
+            { role: 'tool', tool_call_id: 'missing', content: 'stray' },
+            { role: 'tool', content: null },
+        ]);
+
+        expect(history).toEqual([
+            { type: 'system', text: '' },
+            { type: 'user', text: '' },
+            { type: 'model', response: ['Looking.', { type: 'functionCall', name: 'search', params: {}, result: '' }] },
+            { type: 'user', text: 'stray' },
+            { type: 'user', text: '' },
+        ]);
+    });
 });
 
 describe('grammarSchema', () => {
@@ -107,6 +140,24 @@ describe('grammarSchema', () => {
             required: ['count', 'names'],
         });
     });
+
+    it('walks lists and alternatives, keeps a given required list, and leaves plain values alone', () => {
+        const schema = {
+            anyOf: [{ type: 'string', pattern: 'x' }, { type: 'null' }],
+            prefixItems: [{ type: 'number', minimum: 1 }],
+            oneOf: [{ type: 'object', properties: { a: { type: 'string' } }, required: [] }],
+            additionalProperties: { type: 'boolean', default: true },
+        };
+
+        expect(grammarSchema(schema)).toEqual({
+            anyOf: [{ type: 'string' }, { type: 'null' }],
+            prefixItems: [{ type: 'number' }],
+            oneOf: [{ type: 'object', properties: { a: { type: 'string' } }, required: [] }],
+            additionalProperties: { type: 'boolean' },
+        });
+        expect(grammarSchema('text')).toBe('text');
+        expect(grammarSchema(null)).toBe(null);
+    });
 });
 
 // ============================================================================
@@ -117,8 +168,95 @@ describe('ModelCache', () => {
     it('reports nothing loaded until a model is', async () => {
         const cache = new ModelCache();
 
-        expect(cache.has('model.gguf', 4096, -1)).toBe(false);
+        expect(cache.has(localModelSource('model.gguf', 4096, -1))).toBe(false);
         await expect(cache.unload()).resolves.toBe(false);
+    });
+
+    it('keeps a model for the same source and swaps it when the source changes', async () => {
+        const cache = new ModelCache();
+        const first = fakeSource('first');
+        const second = fakeSource('second');
+
+        const loaded = await cache.get(first.source);
+        await cache.get(first.source);
+        expect(first.source.load).toHaveBeenCalledOnce();
+        expect(cache.has(first.source)).toBe(true);
+
+        await cache.get(second.source);
+        expect(first.close).toHaveBeenCalledOnce();
+        expect(cache.has(first.source)).toBe(false);
+        expect(cache.has(second.source)).toBe(true);
+        expect(loaded).toBe(first.model);
+    });
+
+    it('forgets a source whose load failed, so the next call tries again', async () => {
+        const cache = new ModelCache();
+        const broken: ModelSource = { key: 'broken', label: 'broken', contextSize: 1, load: vi.fn(async () => Promise.reject(new Error('no file'))) };
+
+        await expect(cache.get(broken)).rejects.toThrow('no file');
+
+        expect(cache.has(broken)).toBe(false);
+        await expect(cache.unload()).resolves.toBe(false);
+    });
+
+    it('unloads a model that has nothing to close', async () => {
+        const cache = new ModelCache();
+        const source: ModelSource = { key: 'plain', label: 'plain', contextSize: 1, load: async () => replying(STOP) };
+
+        await cache.get(source);
+
+        await expect(cache.unload()).resolves.toBe(true);
+    });
+});
+
+describe('loadModel', () => {
+    it('uses a model it is given without loading', async () => {
+        const given = replying(STOP);
+        const { source } = fakeSource('unused');
+
+        expect(await loadModel(given, source, null, () => undefined)).toBe(given);
+        expect(source.load).not.toHaveBeenCalled();
+    });
+
+    it('loads through the cache, reporting only a load that takes time', async () => {
+        const cache = new ModelCache();
+        const { source, model } = fakeSource('cached');
+        const progress: string[] = [];
+
+        expect(await loadModel(null, source, cache, (message) => progress.push(message))).toBe(model);
+        expect(await loadModel(null, source, cache, (message) => progress.push(message))).toBe(model);
+
+        expect(progress).toEqual(['Loading model']);
+    });
+
+    it('loads the source directly without a cache, naming it on the terminal', async () => {
+        const { source, model } = fakeSource('direct');
+        const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+        expect(await loadModel(null, source, null)).toBe(model);
+
+        expect(log).toHaveBeenCalledWith('Loading model from direct...');
+        log.mockRestore();
+    });
+});
+
+describe('model sources', () => {
+    it('keys a local model by its path, context size and GPU layers', () => {
+        const source = localModelSource('model.gguf', 4096, -1);
+
+        expect(source.label).toBe('model.gguf');
+        expect(source.contextSize).toBe(4096);
+        expect(source.key).not.toBe(localModelSource('model.gguf', 4096, 0).key);
+        expect(source.key).toBe(localModelSource('model.gguf', 4096, -1).key);
+    });
+
+    it('gives background work the background model when one is set, and the main one otherwise', () => {
+        const settings = { ...DEFAULT_SETTINGS };
+
+        expect(backgroundModelSource(settings).key).toBe(localModelSource(settings.model_path, settings.context_size, settings.gpu_layers).key);
+        expect(backgroundModelSource({ ...settings, background_model_path: 'small.gguf', background_gpu_layers: 0 }).key).toBe(
+            localModelSource('small.gguf', settings.context_size, 0).key,
+        );
     });
 });
 

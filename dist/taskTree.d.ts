@@ -3,7 +3,7 @@ import { type ActionRecord, type GatheredListings } from './checks.js';
 import { type Section, type TokenCounter } from './contextBudget.js';
 import { type SectionSummarizer } from './evidence.js';
 import { KnowledgeStore, type EventTrust as Trust, type Recalled } from './knowledge.js';
-import { type ChatModel, type ModelCache } from './model.js';
+import { type ChatModel, type ModelCache, type ModelSource } from './model.js';
 import { type McpServerSettings } from './settings.js';
 import { type Toolbox } from './tools.js';
 import type { ToolCallRecord } from './toolStage.js';
@@ -347,6 +347,7 @@ export type ExecuteTaskTreeOptions = TaskTreeCallbacks & {
     embeddingModelPath?: string;
     llm?: ChatModel | null;
     modelCache?: ModelCache | null;
+    modelSource?: ModelSource | null;
     maxPendingResearchJobs?: number;
     maxTaskDepth?: number;
     maxTaskNodes?: number;

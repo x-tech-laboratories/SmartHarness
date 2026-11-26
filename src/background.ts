@@ -4,9 +4,9 @@ import { fitSectionsToTokens, inputTokenBudget, renderSections, tokenCounter, ty
 import { getEmbedder } from './embeddings.js';
 import { queueResearchTopic, summarizeWebPage } from './evidence.js';
 import { KnowledgeStore, MEMORY_STORES, WORD, casefold, searchTerms, sharesHalfTheTerms, words, type SearchResult } from './knowledge.js';
-import { LocalModel, runStage, type ChatModel, type ModelCache } from './model.js';
+import { backgroundModelSource, runStage, type ChatModel, type ModelCache, type ModelSource } from './model.js';
 import { prompt } from './prompts.js';
-import { MAX_TOKENS, TEMPERATURE, backgroundModelKey, type Settings } from './settings.js';
+import { MAX_TOKENS, TEMPERATURE, type Settings } from './settings.js';
 import { Toolbox } from './tools.js';
 
 // ============================================================================
@@ -117,6 +117,8 @@ export type BackgroundOptions = {
     llm?: ChatModel | null;
     modelLock?: ModelLock | null;
     modelCache?: ModelCache | null;
+    // The model background work runs on; without one it loads the local model the settings name.
+    modelSource?: ModelSource | null;
 };
 
 type JsonObject = Record<string, unknown>;
@@ -143,9 +145,8 @@ export function rethrowPause(error: unknown): void {
 // Runs background model calls one at a time, giving way as soon as foreground work starts.
 export class BackgroundModel {
     readonly maxTokens: number;
-    readonly modelPath: string;
+    readonly modelSource: ModelSource;
     readonly contextSize: number;
-    readonly gpuLayers: number;
     private llm: ChatModel | null;
 
     constructor(
@@ -155,10 +156,12 @@ export class BackgroundModel {
         llm: ChatModel | null,
         readonly modelLock: ModelLock | null,
         readonly modelCache: ModelCache | null,
+        modelSource: ModelSource | null = null,
     ) {
         this.llm = llm;
         this.maxTokens = settings.background_max_tokens ?? MAX_TOKENS;
-        [this.modelPath, this.contextSize, this.gpuLayers] = backgroundModelKey(settings);
+        this.modelSource = modelSource ?? backgroundModelSource(settings);
+        this.contextSize = this.modelSource.contextSize;
     }
 
     static fromOptions(settings: Settings, options: BackgroundOptions): BackgroundModel {
@@ -169,6 +172,7 @@ export class BackgroundModel {
             options.llm ?? null,
             options.modelLock ?? null,
             options.modelCache ?? null,
+            options.modelSource ?? null,
         );
     }
 
@@ -181,8 +185,8 @@ export class BackgroundModel {
     private async load(): Promise<ChatModel> {
         if (this.llm === null) {
             this.llm = this.modelCache !== null
-                ? await this.modelCache.get(this.modelPath, this.contextSize, this.gpuLayers)
-                : await LocalModel.load(this.modelPath, this.contextSize, this.gpuLayers);
+                ? await this.modelCache.get(this.modelSource)
+                : await this.modelSource.load();
         }
         return this.llm;
     }

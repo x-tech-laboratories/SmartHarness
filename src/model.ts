@@ -12,7 +12,7 @@ import type {
 import { deflateRawSync } from 'node:zlib';
 
 import { GPU_LOCK } from './gpuLock.js';
-import { MAX_TOKENS, TEMPERATURE } from './settings.js';
+import { MAX_TOKENS, TEMPERATURE, backgroundModelKey, type Settings } from './settings.js';
 
 // How a tool call written as text begins, in Qwen's XML form and the form of Spark models.
 export const TEXT_TOOL_CALL_OPENINGS: readonly string[] = ['<tool_call>', '<function='];
@@ -394,27 +394,51 @@ export function grammarSchema(schema: unknown): unknown {
 }
 
 // ============================================================================
+// Model sources
+// ============================================================================
+
+// Where a model comes from: a key that changes whenever its load settings do, a name to show, its context size, and how to load it.
+export type ModelSource = {
+    key: string;
+    label: string;
+    contextSize: number;
+    load(onWait?: (message: string) => void): Promise<ChatModel>;
+};
+
+export function localModelSource(modelPath: string, contextSize: number, gpuLayers: number): ModelSource {
+    return {
+        key: JSON.stringify(['local', modelPath, contextSize, gpuLayers]),
+        label: modelPath,
+        contextSize,
+        load: (onWait) => LocalModel.load(modelPath, contextSize, gpuLayers, onWait),
+    };
+}
+
+// The model background work loads when the caller gives it none.
+export function backgroundModelSource(settings: Settings): ModelSource {
+    return localModelSource(...backgroundModelKey(settings));
+}
+
+// ============================================================================
 // Model cache
 // ============================================================================
 
-type CacheKey = [string, number, number];
-
-// Keep one loaded model and reload it only when its load settings change.
+// Keep one loaded model and reload it only when its source changes.
 export class ModelCache {
-    private key: CacheKey | null = null;
-    private model: Promise<LocalModel> | null = null;
+    private key: string | null = null;
+    private model: Promise<ChatModel> | null = null;
 
-    has(modelPath: string, contextSize: number, gpuLayers: number): boolean {
-        return this.model !== null && this.key !== null && this.key[0] === modelPath && this.key[1] === contextSize && this.key[2] === gpuLayers;
+    has(source: ModelSource): boolean {
+        return this.model !== null && this.key === source.key;
     }
 
-    async get(modelPath: string, contextSize: number, gpuLayers: number, onWait?: (message: string) => void): Promise<LocalModel> {
-        if (!this.has(modelPath, contextSize, gpuLayers)) {
+    async get(source: ModelSource, onWait?: (message: string) => void): Promise<ChatModel> {
+        if (!this.has(source)) {
             // Drop the old model first so two never sit in memory together.
             await this.unload();
-            const loading = LocalModel.load(modelPath, contextSize, gpuLayers, onWait);
+            const loading = source.load(onWait);
             this.model = loading;
-            this.key = [modelPath, contextSize, gpuLayers];
+            this.key = source.key;
             loading.catch(() => {
                 if (this.model === loading) {
                     this.model = null;
@@ -434,7 +458,7 @@ export class ModelCache {
             return false;
         }
         try {
-            await (await loading).close();
+            await (await loading).close?.();
         } catch {
             // A model that failed to load holds nothing to free.
         }
@@ -512,9 +536,7 @@ export async function runStage(llm: ChatModel, systemPrompt: string, userInput: 
 // Return the given model, or load one, reporting the load only when it takes time.
 export async function loadModel(
     llm: ChatModel | null | undefined,
-    modelPath: string,
-    contextSize: number,
-    gpuLayers: number,
+    source: ModelSource,
     modelCache: ModelCache | null,
     progressCallback?: (message: string) => void,
 ): Promise<ChatModel> {
@@ -522,11 +544,11 @@ export async function loadModel(
         return llm;
     }
     const report = progressCallback ?? ((message: string) => console.log(message));
-    if (modelCache === null || !modelCache.has(modelPath, contextSize, gpuLayers)) {
-        report(progressCallback ? 'Loading model' : `Loading model from ${modelPath}...`);
+    if (modelCache === null || !modelCache.has(source)) {
+        report(progressCallback ? 'Loading model' : `Loading model from ${source.label}...`);
     }
     if (modelCache) {
-        return modelCache.get(modelPath, contextSize, gpuLayers, report);
+        return modelCache.get(source, report);
     }
-    return LocalModel.load(modelPath, contextSize, gpuLayers, report);
+    return source.load(report);
 }

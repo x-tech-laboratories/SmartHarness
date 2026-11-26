@@ -1,4 +1,5 @@
 import type { ChatHistoryItem, Llama, LlamaModel } from 'node-llama-cpp';
+import { type Settings } from './settings.js';
 export declare const TEXT_TOOL_CALL_OPENINGS: readonly string[];
 export type ToolCall = {
     id: string;
@@ -74,11 +75,19 @@ export declare class LocalModel implements ChatModel {
 }
 export declare function chatHistory(messages: ChatMessage[]): ChatHistoryItem[];
 export declare function grammarSchema(schema: unknown): unknown;
+export type ModelSource = {
+    key: string;
+    label: string;
+    contextSize: number;
+    load(onWait?: (message: string) => void): Promise<ChatModel>;
+};
+export declare function localModelSource(modelPath: string, contextSize: number, gpuLayers: number): ModelSource;
+export declare function backgroundModelSource(settings: Settings): ModelSource;
 export declare class ModelCache {
     private key;
     private model;
-    has(modelPath: string, contextSize: number, gpuLayers: number): boolean;
-    get(modelPath: string, contextSize: number, gpuLayers: number, onWait?: (message: string) => void): Promise<LocalModel>;
+    has(source: ModelSource): boolean;
+    get(source: ModelSource, onWait?: (message: string) => void): Promise<ChatModel>;
     unload(): Promise<boolean>;
 }
 export declare const REPEAT_WINDOW_CHARS = 1200;
@@ -94,4 +103,4 @@ export type StageOptions = {
     signal?: AbortSignal;
 };
 export declare function runStage(llm: ChatModel, systemPrompt: string, userInput: string, options?: StageOptions): Promise<string>;
-export declare function loadModel(llm: ChatModel | null | undefined, modelPath: string, contextSize: number, gpuLayers: number, modelCache: ModelCache | null, progressCallback?: (message: string) => void): Promise<ChatModel>;
+export declare function loadModel(llm: ChatModel | null | undefined, source: ModelSource, modelCache: ModelCache | null, progressCallback?: (message: string) => void): Promise<ChatModel>;
